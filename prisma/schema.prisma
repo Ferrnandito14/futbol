@@ -1,0 +1,573 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// ENUMS
+// ----------------------------------------------------
+
+enum ActorType {
+  PLAYER_WITH_CLUB
+  CHILD
+  FAMILY
+  CLUB
+  ACADEMY
+  SCOUT          // Post-MVP
+  PROFESSIONAL   // Post-MVP
+}
+
+enum UserStatus {
+  PENDING_CONSENT
+  INCOMPLETE
+  ACTIVE
+  SUSPENDED
+}
+
+enum VerificationStatus {
+  DECLARED
+  VERIFIED
+}
+
+enum DominantFoot {
+  LEFT
+  RIGHT
+  BOTH
+}
+
+enum PlayerCategory {
+  PREBENJAMIN
+  BENJAMIN
+  ALEVIN
+  INFANTIL
+  CADETE
+  JUVENIL
+  SENIOR
+  VETERANOS
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  CLUBS_ONLY
+  HIDDEN
+}
+
+enum ChildExperienceLevel {
+  NONE
+  RECREATIONAL
+  FEDERATED
+}
+
+enum FamilyRelationship {
+  PARENT
+  GUARDIAN
+  LEGAL_REPRESENTATIVE
+}
+
+enum PriceRange {
+  FREE
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TryoutStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  SELECTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum MatchStatus {
+  SUGGESTED
+  VIEWED
+  CONTACT_INITIATED
+  OPTED_IN_A
+  OPTED_IN_BOTH
+  CLOSED
+}
+
+enum ContactRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum NotificationChannel {
+  PUSH
+  EMAIL
+  IN_APP
+}
+
+enum ModerationAction {
+  APPROVED
+  BLOCKED
+  ESCALATED
+}
+
+enum PrecisionLevel {
+  EXACT  // Solo para mayores de edad
+  ZONE   // Obligatorio para menores de edad (ofuscado)
+}
+
+enum ConsentMethod {
+  IN_APP
+  EMAIL_CONFIRMATION
+  DOCUMENT
+}
+
+enum AgentName {
+  ONBOARDING
+  PROFILE_COMPLETENESS
+  MATCHING
+  CONTACT
+  FOLLOW_UP
+  HISTORY
+  NOTIFICATION
+  MODERATION
+  RECOMMENDATION
+  GEO_INTELLIGENCE
+}
+
+enum AgentExecutionStatus {
+  SUCCESS
+  ERROR
+  SKIPPED
+}
+
+enum ProfessionalType {
+  COACH
+  FITNESS_TRAINER
+  PHYSIOTHERAPIST
+  STAFF
+  KIT_MANAGER
+}
+
+enum AvailabilityType {
+  FULL_TIME
+  PART_TIME
+  FREELANCE
+}
+
+// ----------------------------------------------------
+// 20 ENTIDADES DEL MODELO DE DATOS
+// ----------------------------------------------------
+
+// 1. User
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique
+  phone        String?
+  actorType    ActorType    @map("actor_type")
+  status       UserStatus   @default(INCOMPLETE)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relaciones
+  playerProfile        PlayerProfile?
+  childProfile         ChildProfile?
+  familyProfile        FamilyProfile?
+  clubProfile          ClubProfile?
+  academyProfile       AcademyProfile?
+  scoutProfile         ScoutProfile?
+  professionalProfile  ProfessionalProfile?
+  userLocation         UserLocation?
+  notifications        Notification[]
+  agentLogs            AgentLog[]
+
+  @@map("users")
+}
+
+// 2. PlayerProfile (Jugador con club)
+model PlayerProfile {
+  id                  String            @id @default(uuid()) @db.Uuid
+  userId              String            @unique @map("user_id") @db.Uuid
+  fullName            String            @map("full_name")
+  birthDate           DateTime          @map("birth_date") @db.Date
+  nationality         String
+  positionPrimary     String            @map("position_primary")
+  positionSecondary   String?           @map("position_secondary")
+  dominantFoot        DominantFoot      @map("dominant_foot")
+  heightCm            Int?              @map("height_cm")
+  weightKg            Int?              @map("weight_kg")
+  category            PlayerCategory
+  currentClubId       String?           @map("current_club_id") @db.Uuid
+  lookingForClub      Boolean           @default(false) @map("looking_for_club")
+  profileCompleteness Int               @default(0) @map("profile_completeness")
+  locationZone        String            @map("location_zone")
+  visibility          ProfileVisibility @default(PUBLIC)
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  // Relaciones
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentClub         ClubProfile?      @relation("CurrentClubPlayers", fields: [currentClubId], references: [id])
+  clubHistory         ClubHistory[]     // OBLIGATORIO en logica de negocio
+  applications        TryoutApplication[]
+
+  @@map("player_profiles")
+}
+
+// 3. ChildProfile (Niño/Joven sin club)
+model ChildProfile {
+  id                  String               @id @default(uuid()) @db.Uuid
+  userId              String               @unique @map("user_id") @db.Uuid
+  familyId            String               @map("family_id") @db.Uuid
+  fullName            String               @map("full_name")
+  birthDate           DateTime             @map("birth_date") @db.Date
+  ageCategory         PlayerCategory       @map("age_category")
+  positionInterest    String?              @map("position_interest")
+  experienceLevel     ChildExperienceLevel @default(NONE) @map("experience_level")
+  parentalConsent     Boolean              @default(false) @map("parental_consent")
+  parentalConsentDate DateTime?            @map("parental_consent_date")
+  locationZone        String               @map("location_zone") // NUNCA coordenadas exactas
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  // Relaciones
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family              FamilyProfile        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  consentRecords      ParentalConsent[]
+
+  @@map("child_profiles")
+}
+
+// 4. FamilyProfile (Familia / Representante)
+model FamilyProfile {
+  id           String             @id @default(uuid()) @db.Uuid
+  userId       String             @unique @map("user_id") @db.Uuid
+  contactName  String             @map("contact_name")
+  relationship FamilyRelationship
+  preferences  Json?
+  locationZone String             @map("location_zone")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  // Relaciones
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children     ChildProfile[]
+  consents     ParentalConsent[]
+
+  @@map("family_profiles")
+}
+
+// 5. ClubProfile (Club federado)
+model ClubProfile {
+  id                  String             @id @default(uuid()) @db.Uuid
+  userId              String             @unique @map("user_id") @db.Uuid
+  officialName        String             @map("official_name")
+  shortName           String             @map("short_name")
+  federation          String
+  federationId        String?            @map("federation_id")
+  federationStatus    VerificationStatus @default(DECLARED) @map("federation_status")
+  foundedYear         Int?               @map("founded_year")
+  categoriesActive    PlayerCategory[]   @map("categories_active")
+  locationAddress     String             @map("location_address")
+  locationZone        String             @map("location_zone")
+  contactEmail        String             @map("contact_email") // Oculto por defecto
+  contactPhone        String?            @map("contact_phone") // Oculto por defecto
+  profileCompleteness Int                @default(0) @map("profile_completeness")
+  verified            Boolean            @default(false)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  // Relaciones
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentPlayers      PlayerProfile[]    @relation("CurrentClubPlayers")
+  clubHistories       ClubHistory[]
+  tryouts             Tryout[]
+
+  @@map("club_profiles")
+}
+
+// 6. AcademyProfile (Academia formativa)
+model AcademyProfile {
+  id               String             @id @default(uuid()) @db.Uuid
+  userId           String             @unique @map("user_id") @db.Uuid
+  officialName     String             @map("official_name")
+  methodology      String
+  ageRangeMin      Int                @map("age_range_min")
+  ageRangeMax      Int                @map("age_range_max")
+  categoriesActive PlayerCategory[]   @map("categories_active")
+  priceRange       PriceRange         @default(MEDIUM) @map("price_range")
+  locationZone     String             @map("location_zone")
+  locationAddress  String             @map("location_address")
+  federated        Boolean            @default(false)
+  verified         Boolean            @default(false)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  // Relaciones
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("academy_profiles")
+}
+
+// 7. ClubHistory (Historial deportivo de jugador)
+model ClubHistory {
+  id                 String             @id @default(uuid()) @db.Uuid
+  playerId           String             @map("player_id") @db.Uuid
+  clubName           String             @map("club_name")
+  clubId             String?            @map("club_id") @db.Uuid
+  seasonFrom         String             @map("season_from") // Ej: "2022/23"
+  seasonTo           String?            @map("season_to")
+  category           PlayerCategory
+  verificationStatus VerificationStatus @default(DECLARED) @map("verification_status")
+  verifiedBy         String?            @map("verified_by") // null hasta COMET
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  // Relaciones
+  player             PlayerProfile      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  club               ClubProfile?       @relation(fields: [clubId], references: [id])
+
+  @@map("club_histories")
+}
+
+// 8. Tryout (Convocatoria publicada por un club)
+model Tryout {
+  id                String              @id @default(uuid()) @db.Uuid
+  clubId            String              @map("club_id") @db.Uuid
+  title             String
+  description       String
+  category          PlayerCategory
+  positionsNeeded   String[]            @map("positions_needed")
+  ageMin            Int                 @map("age_min")
+  ageMax            Int                 @map("age_max")
+  dateTryout        DateTime            @map("date_tryout")
+  locationZone      String              @map("location_zone")
+  status            TryoutStatus        @default(PUBLISHED)
+  applicationsCount Int                 @default(0) @map("applications_count")
+  expiresAt         DateTime            @map("expires_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  // Relaciones
+  club              ClubProfile         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  applications      TryoutApplication[]
+
+  @@map("tryouts")
+}
+
+// 9. TryoutApplication (Postulación de un jugador a un tryout)
+model TryoutApplication {
+  id        String            @id @default(uuid()) @db.Uuid
+  tryoutId  String            @map("tryout_id") @db.Uuid
+  playerId  String            @map("player_id") @db.Uuid
+  status    ApplicationStatus @default(PENDING)
+  message   String?
+  appliedAt DateTime          @default(now()) @map("applied_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  // Relaciones
+  tryout    Tryout            @relation(fields: [tryoutId], references: [id], onDelete: Cascade)
+  player    PlayerProfile     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tryoutId, playerId])
+  @@map("tryout_applications")
+}
+
+// 10. Match (Compatibilidad calculada entre dos actores)
+model Match {
+  id             String          @id @default(uuid()) @db.Uuid
+  actorAType     ActorType       @map("actor_a_type")
+  actorAId       String          @map("actor_a_id") @db.Uuid
+  actorBType     ActorType       @map("actor_b_type")
+  actorBId       String          @map("actor_b_id") @db.Uuid
+  score          Float
+  scoreBreakdown Json            @map("score_breakdown")
+  status         MatchStatus     @default(SUGGESTED)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Relaciones
+  contactRequest ContactRequest?
+
+  @@map("matches")
+}
+
+// 11. ContactRequest (Solicitud de contacto con doble opt-in mutuo)
+model ContactRequest {
+  id                String               @id @default(uuid()) @db.Uuid
+  matchId           String               @unique @map("match_id") @db.Uuid
+  initiatorId       String               @map("initiator_id") @db.Uuid
+  recipientId       String               @map("recipient_id") @db.Uuid
+  status            ContactRequestStatus @default(PENDING)
+  optinInitiator    Boolean              @default(true) @map("optin_initiator")
+  optinRecipient    Boolean              @default(false) @map("optin_recipient")
+  channelEnabledAt  DateTime?            @map("channel_enabled_at")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  // Relaciones
+  match             Match                @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  messages          Message[]
+
+  @@map("contact_requests")
+}
+
+// 12. Message (Mensajería interna bajo opt-in verificado)
+model Message {
+  id               String         @id @default(uuid()) @db.Uuid
+  contactRequestId String         @map("contact_request_id") @db.Uuid
+  senderId         String         @map("sender_id") @db.Uuid
+  recipientId      String         @map("recipient_id") @db.Uuid
+  content          String
+  moderated        Boolean        @default(false)
+  sentAt           DateTime       @default(now()) @map("sent_at")
+
+  // Relaciones
+  contactRequest   ContactRequest @relation(fields: [contactRequestId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// 13. Notification (Notificaciones multi-canal del sistema)
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @map("user_id") @db.Uuid
+  type      String
+  title     String
+  body      String
+  read      Boolean             @default(false)
+  channel   NotificationChannel @default(IN_APP)
+  sentAt    DateTime            @default(now()) @map("sent_at")
+  readAt    DateTime?           @map("read_at")
+
+  // Relaciones
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// 14. ModerationLog (Registro de auditoría de moderación)
+model ModerationLog {
+  id          String           @id @default(uuid()) @db.Uuid
+  contentType String           @map("content_type")
+  contentId   String           @map("content_id") @db.Uuid
+  action      ModerationAction
+  reason      String
+  moderatorId String?          @map("moderator_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@map("moderation_logs")
+}
+
+// 15. GeographicZone (Zonas geográficas ofuscadas por polígono / área)
+model GeographicZone {
+  id          String         @id @default(uuid()) @db.Uuid
+  name        String
+  country     String
+  region      String
+  city        String
+  polygonJson Json?          @map("polygon_json") // GeoJSON poligonal
+  clubDensity Int            @default(0) @map("club_density")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  // Relaciones
+  locations   UserLocation[]
+
+  @@map("geographic_zones")
+}
+
+// 16. UserLocation (Ubicación con aislamiento de precisión)
+model UserLocation {
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @unique @map("user_id") @db.Uuid
+  zoneId         String?         @map("zone_id") @db.Uuid
+  exactCoordsEnc String?         @map("exact_coords_enc") // Cifrado AES-256. NUNCA expuesto para menores
+  precisionLevel PrecisionLevel  @default(ZONE) @map("precision_level")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Relaciones
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  zone           GeographicZone? @relation(fields: [zoneId], references: [id])
+
+  @@map("user_locations")
+}
+
+// 17. ParentalConsent (Registro explícito de consentimiento parental)
+model ParentalConsent {
+  id            String        @id @default(uuid()) @db.Uuid
+  childId       String        @map("child_id") @db.Uuid
+  familyId      String        @map("family_id") @db.Uuid
+  consentGiven  Boolean       @default(true) @map("consent_given")
+  consentMethod ConsentMethod @map("consent_method")
+  ipAddress     String        @map("ip_address")
+  givenAt       DateTime      @default(now()) @map("given_at")
+  revokedAt     DateTime?     @map("revoked_at")
+
+  // Relaciones
+  child         ChildProfile  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  family        FamilyProfile @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("parental_consents")
+}
+
+// 18. AgentLog (Registro de auditoría para los 10 agentes de producto)
+model AgentLog {
+  id          String               @id @default(uuid()) @db.Uuid
+  agentName   AgentName            @map("agent_name")
+  userId      String?              @map("user_id") @db.Uuid
+  action      String
+  inputData   Json                 @map("input_data")
+  outputData  Json                 @map("output_data")
+  status      AgentExecutionStatus @default(SUCCESS)
+  executedAt  DateTime             @default(now()) @map("executed_at")
+
+  // Relaciones
+  user        User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("agent_logs")
+}
+
+// 19. ScoutProfile (POST-MVP - Aislado de flujos MVP)
+model ScoutProfile {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @unique @map("user_id") @db.Uuid
+  organization       String
+  license            String?
+  verificationStatus VerificationStatus @default(DECLARED) @map("verification_status")
+  categoriesInterest PlayerCategory[]   @map("categories_interest")
+  searchCriteria     Json?              @map("search_criteria")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  // Relaciones
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("scout_profiles")
+}
+
+// 20. ProfessionalProfile (POST-MVP - Entrenadores, Fisioterapeutas, Preparadores, Staff)
+model ProfessionalProfile {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @unique @map("user_id") @db.Uuid
+  professionalType   ProfessionalType   @map("professional_type")
+  license            String?
+  verificationStatus VerificationStatus @default(DECLARED) @map("verification_status")
+  experienceYears    Int                @default(0) @map("experience_years")
+  specialization     String?
+  availability       AvailabilityType   @default(FULL_TIME)
+  locationZone       String             @map("location_zone")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  // Relaciones
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("professional_profiles")
+}

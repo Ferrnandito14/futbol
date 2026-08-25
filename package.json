@@ -1,0 +1,30 @@
+{
+  "name": "startup-deportiva",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plataforma que conecta jugadores de futbol, familias, clubes, academias, scouts y profesionales",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "dev": "node src/server.mjs",
+    "build": "tsc",
+    "lint": "eslint src/ --ext .ts",
+    "test": "node tests/runner.mjs",
+    "test:vitest": "vitest run",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "prisma": "^5.20.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}
