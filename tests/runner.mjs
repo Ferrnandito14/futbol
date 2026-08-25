@@ -68,16 +68,16 @@ test('docs/adr/ debe contener los 4 Architecture Decision Records base', () => {
   assert.ok(adrFiles.some(f => f.includes('0004-verificacion-datos-federativos-comet')), 'Falta ADR 0004');
 });
 
-// 4. Validar que el prototipo interactivo frontend esté completo
-test('src/frontend/ debe contener index.html, styles.css y app.js', () => {
+// 4. Validar que el frontend implementa el flujo de onboarding y aislamiento por rol
+test('src/frontend/ debe implementar Onboarding y separación de roles en frontend', () => {
   const html = fs.readFileSync(path.join(rootDir, 'src', 'frontend', 'index.html'), 'utf8');
   const css = fs.readFileSync(path.join(rootDir, 'src', 'frontend', 'styles.css'), 'utf8');
   const js = fs.readFileSync(path.join(rootDir, 'src', 'frontend', 'app.js'), 'utf8');
 
-  assert.ok(html.includes('David Silva Jr.'), 'HTML debe incluir demo de Jugador con Club');
-  assert.ok(html.includes('Mateo Rossi'), 'HTML debe incluir demo de Niño + Familia');
-  assert.ok(html.includes('Pipeline de los 10 Agentes'), 'HTML debe incluir monitor de agentes');
-  assert.ok(js.includes('simulateAgentPipeline'), 'JS debe incluir simulador de pipeline');
+  assert.ok(html.includes('auth-screen') && html.includes('onboarding-step-role'), 'Debe incluir pantalla de onboarding inicial');
+  assert.ok(js.includes('PLAYER_WITH_CLUB') && js.includes('FAMILY_CHILD') && js.includes('CLUB_ACADEMY'), 'Debe aislar los 3 roles del MVP');
+  assert.ok(js.includes('parental-consent-check'), 'Debe exigir consentimiento parental en el formulario');
+  assert.ok(js.includes('hist-club'), 'Debe exigir historial de clubes al jugador');
   assert.ok(css.includes('--primary: #10b981'), 'CSS debe incluir paleta deportiva');
 });
 

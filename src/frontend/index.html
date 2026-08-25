@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Startup Deportiva — Conectando el Ecosistema del Fútbol</title>
+  <title>Startup Deportiva — Conectando el Fútbol Formativo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,467 +13,119 @@
 </head>
 <body>
   <div id="app" class="app-layout">
-    <!-- TOP HEADER -->
-    <header class="top-header">
-      <div class="brand-group">
-        <div class="logo-icon">⚽</div>
-        <div>
-          <h1 class="brand-title">Startup Deportiva</h1>
-          <span class="brand-badge">MVP Activo • Etapa 20</span>
+    
+    <!-- 1. PANTALLA DE AUTH / ONBOARDING INICIAL (SI NO HAY SESIÓN) -->
+    <div id="auth-screen" class="auth-screen">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <div class="logo-circle">⚽</div>
+          <h2>Bienvenido a Startup Deportiva</h2>
+          <p class="auth-subtitle">La plataforma inteligente que conecta jugadores, familias, clubes y academias según categoría, nivel y zona.</p>
+        </div>
+
+        <!-- PASO 1: SELECCIÓN DE ROL -->
+        <div id="onboarding-step-role" class="onboarding-step active">
+          <h3>Para comenzar, ¿cuál es tu rol en el fútbol?</h3>
+          <p class="step-desc">Tu experiencia y privacidad se adaptarán estrictamente a tu tipo de perfil.</p>
+          
+          <div class="role-grid">
+            <div class="role-card" onclick="selectOnboardingRole('PLAYER_WITH_CLUB')">
+              <div class="role-icon">⚽</div>
+              <h4>Jugador con Club</h4>
+              <p>Estoy activo en un equipo, busco convocatorias a tryouts o un cambio de club.</p>
+              <span class="role-badge">Historial Obligatorio</span>
+            </div>
+
+            <div class="role-card" onclick="selectOnboardingRole('FAMILY_CHILD')">
+              <div class="role-icon">👨‍👩‍👦</div>
+              <h4>Familia / Tutor Legal</h4>
+              <p>Represento a mi hijo/menor para iniciación deportiva o búsqueda de academias formativas.</p>
+              <span class="role-badge safety">Privacidad y GPS Protegido</span>
+            </div>
+
+            <div class="role-card" onclick="selectOnboardingRole('CLUB_ACADEMY')">
+              <div class="role-icon">🏟️</div>
+              <h4>Club o Academia</h4>
+              <p>Buscamos talento para nuestras categorías federadas o formativas y publicamos tryouts.</p>
+              <span class="role-badge">Entidad Deportiva</span>
+            </div>
+          </div>
+
+          <div class="quick-demo-access">
+            <span>¿Quieres probar perfiles de ejemplo ya creados?</span>
+            <div class="demo-buttons">
+              <button class="btn btn-outline btn-xs" onclick="loginDemo('player')">Ver como Jugador</button>
+              <button class="btn btn-outline btn-xs" onclick="loginDemo('family')">Ver como Familia</button>
+              <button class="btn btn-outline btn-xs" onclick="loginDemo('club')">Ver como Club</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 2: FORMULARIO SEGÚN ROL -->
+        <div id="onboarding-step-form" class="onboarding-step">
+          <div class="form-header">
+            <button class="btn btn-outline btn-xs" onclick="backToRoleSelect()"><i data-lucide="arrow-left"></i> Volver</button>
+            <h3 id="form-role-title">Crear Perfil</h3>
+          </div>
+
+          <form id="profile-creation-form" onsubmit="handleProfileSubmit(event)">
+            <div id="dynamic-form-fields">
+              <!-- Rendered via JS according to selected role -->
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-block" id="btn-submit-profile">
+                Completar Registro y Entrar
+              </button>
+            </div>
+          </form>
         </div>
       </div>
+    </div>
 
-      <!-- ACTIVE ROLE SWITCHER -->
-      <div class="role-selector-bar">
-        <span class="role-label">Vista de Actor:</span>
-        <div class="role-buttons">
-          <button class="role-btn active" data-role="player" onclick="setRole('player')">
-            <i data-lucide="user"></i> Jugador con Club
-          </button>
-          <button class="role-btn" data-role="family" onclick="setRole('family')">
-            <i data-lucide="shield-check"></i> Niño + Familia
-          </button>
-          <button class="role-btn" data-role="club" onclick="setRole('club')">
-            <i data-lucide="shield"></i> Club / Academia
-          </button>
-          <button class="role-btn monitor" data-role="agents" onclick="setRole('agents')">
-            <i data-lucide="cpu"></i> Pipeline 10 Agentes
-          </button>
-          <button class="role-btn growth" data-role="growth" onclick="setRole('growth')">
-            <i data-lucide="trending-up"></i> Growth & Skills
-          </button>
-        </div>
-      </div>
-
-      <!-- USER STATUS BADGE -->
-      <div class="header-status">
-        <div class="privacy-pill">
-          <i data-lucide="lock"></i>
-          <span>Privacidad Menores: <strong>Ofuscada (Zona)</strong></span>
-        </div>
-        <div class="comet-pill">
-          <i data-lucide="info"></i>
-          <span>COMET: <strong>Declarado</strong></span>
-        </div>
-      </div>
-    </header>
-
-    <!-- MAIN BODY -->
-    <main class="main-content">
-      <!-- 1. VISTA JUGADOR CON CLUB -->
-      <section id="view-player" class="view-panel active">
-        <div class="view-header">
+    <!-- 2. PLATAFORMA PRIVADA (CUANDO EL USUARIO ESTÁ AUTENTICADO) -->
+    <div id="portal-screen" class="portal-screen" style="display: none;">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="portal-header">
+        <div class="brand-group">
+          <div class="logo-icon">⚽</div>
           <div>
-            <h2>Panel de Jugador (Con Club)</h2>
-            <p class="subtitle">David Silva Jr. • Categoría Cadete A • Mediocentro Ofensivo • Pie Izquierdo</p>
+            <h1 class="brand-title">Startup Deportiva</h1>
+            <span class="role-identity-badge" id="current-user-role-badge">Jugador con Club</span>
           </div>
-          <button class="btn btn-primary" onclick="openTryoutModal()">
-            <i data-lucide="search"></i> Buscar Tryouts en mi Zona
+        </div>
+
+        <!-- USER PROFILE & LOGOUT -->
+        <div class="user-menu-group">
+          <div class="user-info">
+            <span class="user-name" id="current-user-name">David Silva Jr.</span>
+            <span class="user-sub" id="current-user-sub">Cadete A • Madrid Noroeste</span>
+          </div>
+          <button class="btn btn-outline btn-sm logout-btn" onclick="logout()" title="Cerrar sesión">
+            <i data-lucide="log-out"></i> Cambiar Perfil
           </button>
         </div>
+      </header>
 
-        <div class="dashboard-grid">
-          <!-- Tarjeta Perfil & Completitud -->
-          <div class="card profile-card">
-            <div class="card-header">
-              <h3><i data-lucide="id-card"></i> Estado del Perfil</h3>
-              <span class="badge badge-success">85% Completo</span>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar" style="width: 85%"></div>
-            </div>
-            <div class="agent-suggestion-box">
-              <div class="agent-tag"><i data-lucide="bot"></i> Agente Completitud</div>
-              <p>💡 <em>"Añadir videos de jugadas aumentará un 40% la tasa de respuesta en convocatorias de clubes."</em></p>
-            </div>
-            <div class="profile-details-list">
-              <div class="detail-row"><span>Club Actual:</span> <strong>CD Las Rozas (Cadete B)</strong></div>
-              <div class="detail-row"><span>Zona de Residencia:</span> <strong>Madrid Noroeste (Ofuscada)</strong></div>
-              <div class="detail-row"><span>Búsqueda Activa:</span> <span class="badge badge-accent">Sí • Buscando Club</span></div>
-            </div>
-          </div>
+      <!-- BODY VIEW (PERSONALIZADO AL 100% PARA EL ACTOR) -->
+      <main class="portal-content" id="portal-dynamic-content">
+        <!-- Rendered dynamically for: Player, Family or Club -->
+      </main>
+    </div>
 
-          <!-- Historial de Clubes OBLIGATORIO -->
-          <div class="card history-card">
-            <div class="card-header">
-              <h3><i data-lucide="history"></i> Historial Deportivo (Obligatorio)</h3>
-              <span class="badge badge-warning">Estado: Declarado</span>
-            </div>
-            <p class="card-description">Los datos federativos están etiquetados como declarados hasta la integración con COMET.</p>
-            <div class="timeline">
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <h4>CD Las Rozas — Cadete B</h4>
-                  <span class="timeline-date">2025/2026 • Titular (18 partidos, 6 goles)</span>
-                  <span class="status-tag declared">Declarado</span>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <h4>CF Pozuelo — Infantil A</h4>
-                  <span class="timeline-date">2023/2025 • Capitán</span>
-                  <span class="status-tag declared">Declarado</span>
-                </div>
-              </div>
-            </div>
-            <button class="btn btn-outline btn-sm" onclick="addHistoryModal()">+ Agregar Club Anterior</button>
-          </div>
-
-          <!-- Tryouts Recomendados por Matching Agent -->
-          <div class="card tryouts-card full-width">
-            <div class="card-header">
-              <h3><i data-lucide="sparkles"></i> Tryouts y Convocatorias Compatibles (Agente de Matching)</h3>
-              <span class="badge badge-info">Ponderación: Urgencia (50%) > Nivel (30%) > Zona (20%)</span>
-            </div>
-            <div class="tryouts-table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Club / Convocatoria</th>
-                    <th>Categoría</th>
-                    <th>Posición Buscada</th>
-                    <th>Zona</th>
-                    <th>Score Match</th>
-                    <th>Acción</th>
-                  </tr>
-                </thead>
-                <tbody id="player-tryouts-list">
-                  <!-- Populated via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 2. VISTA NIÑO / JOVEN + FAMILIA -->
-      <section id="view-family" class="view-panel">
-        <div class="view-header">
-          <div>
-            <h2>Panel de Familia & Representante Legal</h2>
-            <p class="subtitle">Tutor: Carlos Rossi • Menor a cargo: Mateo Rossi (10 años, Benjamín)</p>
-          </div>
-          <div class="consent-status-badge active">
-            <i data-lucide="shield-check"></i> Consentimiento Parental Verificado (IP: 185.23.44.12)
-          </div>
-        </div>
-
-        <div class="dashboard-grid">
-          <!-- Tarjeta de Protección al Menor -->
-          <div class="card protection-card">
-            <div class="card-header">
-              <h3><i data-lucide="lock"></i> Protocolo de Seguridad Infantil</h3>
-              <span class="badge badge-success">Activo y Cifrado</span>
-            </div>
-            <ul class="protection-rules-list">
-              <li><i data-lucide="check-circle"></i> <strong>Coordenadas GPS Ocultas:</strong> Solo se muestra radio de zona aproximada a clubes y academias.</li>
-              <li><i data-lucide="check-circle"></i> <strong>Contacto Directo Bloqueado:</strong> Cualquier club debe solicitar autorización primero a Carlos Rossi.</li>
-              <li><i data-lucide="check-circle"></i> <strong>Notificaciones Protegidas:</strong> Todas las alertas llegan al correo del tutor, no al menor.</li>
-            </ul>
-            <button class="btn btn-outline btn-sm" onclick="showConsentAudit()">Ver Registro de Consentimiento</button>
-          </div>
-
-          <!-- Academias Formativas Recomendadas -->
-          <div class="card academies-card full-width">
-            <div class="card-header">
-              <h3><i data-lucide="graduation-cap"></i> Academias Formativas en tu Zona (Iniciación Deportiva)</h3>
-              <span class="badge badge-accent">Filtro: Metodología y Cercanía Segura</span>
-            </div>
-            <div class="academy-cards-grid" id="academies-list">
-              <!-- Populated via JS -->
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 3. VISTA CLUB / ACADEMIA -->
-      <section id="view-club" class="view-panel">
-        <div class="view-header">
-          <div>
-            <h2>Panel de Club Deportivo</h2>
-            <p class="subtitle">Rayo Majadahonda CF • Categorías Federadas: Alevín, Infantil, Cadete, Juvenil</p>
-          </div>
-          <button class="btn btn-primary" onclick="openPublishTryoutModal()">
-            <i data-lucide="plus-circle"></i> Publicar Nueva Convocatoria
-          </button>
-        </div>
-
-        <div class="dashboard-grid">
-          <!-- Convocatorias Activas -->
-          <div class="card full-width">
-            <div class="card-header">
-              <h3><i data-lucide="megaphone"></i> Convocatorias Activas del Club</h3>
-              <span class="badge badge-primary">2 Tryouts en curso</span>
-            </div>
-            <div class="club-tryouts-grid">
-              <div class="club-tryout-item">
-                <div class="tryout-title-row">
-                  <h4>Cadete Autonómica — Central Zurdo y Mediocentro</h4>
-                  <span class="badge badge-success">Abierto</span>
-                </div>
-                <p>Fecha de prueba: <strong>Sábado 15:00</strong> • Ciudad Deportiva Majadahonda</p>
-                <div class="tryout-stats">
-                  <span><strong>12</strong> Postulaciones</span>
-                  <span><strong>4</strong> Matches Compatibles</span>
-                </div>
-                <button class="btn btn-outline btn-sm" onclick="reviewApplications('tryout-1')">Revisar Candidatos (12)</button>
-              </div>
-
-              <div class="club-tryout-item">
-                <div class="tryout-title-row">
-                  <h4>Infantil Preferente — Extremo Rápido</h4>
-                  <span class="badge badge-success">Abierto</span>
-                </div>
-                <p>Fecha de prueba: <strong>Martes 17:30</strong> • Campo Municipal La Oliva</p>
-                <div class="tryout-stats">
-                  <span><strong>8</strong> Postulaciones</span>
-                  <span><strong>6</strong> Matches Compatibles</span>
-                </div>
-                <button class="btn btn-outline btn-sm" onclick="reviewApplications('tryout-2')">Revisar Candidatos (8)</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Búsqueda Inteligente de Jugadores -->
-          <div class="card full-width">
-            <div class="card-header">
-              <h3><i data-lucide="users"></i> Explorador de Jugadores (Filtro por Perfil y Nivel)</h3>
-            </div>
-            <div class="search-filters-row">
-              <select class="input-select" id="filter-pos">
-                <option value="ALL">Todas las posiciones</option>
-                <option value="MCO">Mediocentro Ofensivo (MCO)</option>
-                <option value="DFC">Defensa Central (DFC)</option>
-                <option value="DEL">Delantero Centro (DC)</option>
-              </select>
-              <select class="input-select" id="filter-cat">
-                <option value="CADETE">Cadete</option>
-                <option value="INFANTIL">Infantil</option>
-                <option value="ALEVIN">Alevín</option>
-              </select>
-              <button class="btn btn-secondary" onclick="runClubSearch()">Filtrar</button>
-            </div>
-            <div id="club-player-results" class="player-results-grid">
-              <!-- Populated via JS -->
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 4. MONITOR DEL PIPELINE DE 10 AGENTES -->
-      <section id="view-agents" class="view-panel">
-        <div class="view-header">
-          <div>
-            <h2>Pipeline de los 10 Agentes de Producto (Tiempo Real)</h2>
-            <p class="subtitle">Monitoreo de ejecución, contratos de 8 campos y cumplimiento de frenos de seguridad.</p>
-          </div>
-          <button class="btn btn-accent" onclick="simulateAgentPipeline()">
-            <i data-lucide="play"></i> Simular Evento de Match y Contacto
-          </button>
-        </div>
-
-        <div class="agents-grid">
-          <!-- 10 Tarjetas de Agentes -->
-          <div class="agent-card" id="agent-onboarding">
-            <div class="agent-header">
-              <span class="agent-num">01</span>
-              <h4>Onboarding</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Valida requisitos mínimos por actor y frena si falta consentimiento o historial.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Menor sin tutor / Jugador sin historial</div>
-              <div><strong>Salida:</strong> Perfil base + Checklist</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-completeness">
-            <div class="agent-header">
-              <span class="agent-num">02</span>
-              <h4>Completitud Perfil</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Prioriza campos de alto impacto. Máximo 1 sugerencia contextual por sesión.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> No spamear misma sesión</div>
-              <div><strong>Salida:</strong> Tip contextual de impacto</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-matching">
-            <div class="agent-header">
-              <span class="agent-num">03</span>
-              <h4>Matching Engine</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Calcula compatibilidad: Urgencia (50%) > Nivel (30%) > Proximidad (20%).</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Cercanía nunca sobrepasa nivel</div>
-              <div><strong>Salida:</strong> Lista ponderada con zona</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-contact">
-            <div class="agent-header">
-              <span class="agent-num">04</span>
-              <h4>Contacto (Doble Opt-in)</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Bloquea contacto directo hasta opt-in mutuo explícito.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Contacto oculto por defecto</div>
-              <div><strong>Salida:</strong> Canal seguro habilitado</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-followup">
-            <div class="agent-header">
-              <span class="agent-num">05</span>
-              <h4>Seguimiento</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Alerta a las 72h de inactividad (máx. 2) y archiva a los 7 días.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Máximo 2 recordatorios</div>
-              <div><strong>Salida:</strong> Alerta suave o archivo</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-history">
-            <div class="agent-header">
-              <span class="agent-num">06</span>
-              <h4>Historial</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Registra eventos en timeline con timestamp inmutable.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Nunca 'verificado' sin COMET</div>
-              <div><strong>Salida:</strong> Registro con 'declarado'</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-notification">
-            <div class="agent-header">
-              <span class="agent-num">07</span>
-              <h4>Notificaciones</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Consolida avisos, respeta horario nocturno y redirige alertas de menores a tutores.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Silencio 23h-07h / Máx 5 día</div>
-              <div><strong>Salida:</strong> Aviso canalizado</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-moderation">
-            <div class="agent-header">
-              <span class="agent-num">08</span>
-              <h4>Moderación</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Escanea texto y bloquea intentos de compartir teléfonos o emails en texto libre.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Bloqueo inmediato de bypass</div>
-              <div><strong>Salida:</strong> Texto sanitizado o bloqueo</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-recommendation">
-            <div class="agent-header">
-              <span class="agent-num">09</span>
-              <h4>Recomendaciones</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Hasta 3 oportunidades semanales ultra-personalizadas para actores del MVP.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> Solo actores MVP (no scout)</div>
-              <div><strong>Salida:</strong> 3 sugerencias semanales</div>
-            </div>
-          </div>
-
-          <div class="agent-card" id="agent-geo">
-            <div class="agent-header">
-              <span class="agent-num">10</span>
-              <h4>Inteligencia Geo</h4>
-              <span class="agent-status ok">Activo</span>
-            </div>
-            <p class="agent-role">Cruza contexto y ubicación. Ofuscación poligonal total para menores.</p>
-            <div class="agent-contract-mini">
-              <div><strong>Freno:</strong> NUNCA coordenadas exactas</div>
-              <div><strong>Salida:</strong> Etiqueta de zona contextual</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- LOG EN VIVO DE AGENTES -->
-        <div class="card full-width terminal-card">
-          <div class="card-header">
-            <h3><i data-lucide="terminal"></i> Registro de Auditoría en Tiempo Real (AgentLog)</h3>
-            <button class="btn btn-outline btn-xs" onclick="clearLogs()">Limpiar</button>
-          </div>
-          <div class="terminal-body" id="agent-console-log">
-            <div class="log-entry sys">[SISTEMA] Pipeline de 10 agentes inicializado conforme a docs/spec/09-agentes-producto.md</div>
-            <div class="log-entry ok">[AGENT_GEO] Consultada ubicación: Mateo Rossi -> Zona Noroeste Madrid (Ofuscada)</div>
-            <div class="log-entry ok">[AGENT_MATCHING] Calculados 4 tryouts para David Silva Jr. Score top: 92%</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 5. VISTA GROWTH & SKILLS -->
-      <section id="view-growth" class="view-panel">
-        <div class="view-header">
-          <div>
-            <h2>Skills de Negocio y Crecimiento (Fases 0 a 4)</h2>
-            <p class="subtitle">Estrategia de tracción, alianzas con academias piloto y plan de activación.</p>
-          </div>
-        </div>
-
-        <div class="growth-phases-grid">
-          <div class="phase-card">
-            <div class="phase-header">Fase 0 — Validación</div>
-            <h4>Skill 0.1 & 0.2: Investigación e ICPs</h4>
-            <p>Modelos de usuario definidos para España (Madrid y Barcelona) con foco en familias y jugadores cadetes.</p>
-            <span class="badge badge-success">Completado</span>
-          </div>
-
-          <div class="phase-card">
-            <div class="phase-header">Fase 1 — Tracción Piloto</div>
-            <h4>Skill 1.2: Alianzas con 5 Clubes</h4>
-            <p>Propuesta de valor para captación de talento sin intermediarios oscuros.</p>
-            <span class="badge badge-primary">En Ejecución</span>
-          </div>
-
-          <div class="phase-card">
-            <div class="phase-header">Fase 2 — Activación MVP</div>
-            <h4>Skill 2.2: KPIs de Retención</h4>
-            <p>Objetivo: 70% de perfiles completos en 48h y 1er match seguro en < 5 días.</p>
-            <span class="badge badge-warning">Configurado</span>
-          </div>
-
-          <div class="phase-card">
-            <div class="phase-header">Fase 3 & 4 — Escala</div>
-            <h4>Expansión & Monetización Post-MVP</h4>
-            <p>Activación de Scouts, Preparadores Físicos y suscripción SaaS para clubes.</p>
-            <span class="badge badge-muted">Post-MVP</span>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- MODAL: POSTULACIÓN / CHAT DE OPT-IN SEGURO -->
-    <div id="contact-modal" class="modal-overlay">
+    <!-- MODAL REUTILIZABLE (POSTULACIÓN / DETALLES) -->
+    <div id="app-modal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="modal-title">Solicitud de Contacto Seguro</h3>
-          <button class="modal-close" onclick="closeContactModal()">&times;</button>
+          <h3 id="modal-title">Título del Modal</h3>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body" id="modal-body">
           <!-- Dynamic Content -->
         </div>
       </div>
     </div>
+
   </div>
 
   <script src="app.js"></script>
